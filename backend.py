@@ -4,6 +4,10 @@ conn = sqlite3.connect('library.db')
 cursor = conn.cursor()
 cursor.execute("DROP TABLE IF EXISTS Books")
 
+
+cursor.execute("DROP TABLE IF EXISTS Loans")
+conn.commit()
+
 cursor.executescript("""
 CREATE TABLE IF NOT EXISTS Genres (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
