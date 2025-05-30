@@ -211,9 +211,6 @@ conn.commit()
 
 
 
-# Pretpostavimo da već imaš otvorenu vezu i cursor, npr.
-# conn = sqlite3.connect('tvoja_baza.db')
-# cursor = conn.cursor()
 
 reviews_to_insert = [
     (1, 1, 5, 'Odlična knjiga! Vrhunska radnja i stil.'),

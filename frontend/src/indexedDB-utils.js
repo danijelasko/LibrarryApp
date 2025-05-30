@@ -1,398 +1,9 @@
-/*import { openDB } from 'idb';
-
-const DB_NAME = 'LibraryDB';
-const DB_VERSION =8;
-
-const STORE_BOOKS = 'books';
-const STORE_GENRES = 'genres';
-const STORE_REVIEWS = 'reviews';
-const STORE_IMAGES = 'images';
-const STORE_LOANS = 'loans';
-const STORE_PENDING_LOANS = 'pendingLoans';
-
-export async function initDB() {
-  return openDB('LibraryDB', 8, {
-    upgrade(db) {
-      // BOOKS
-      if (!db.objectStoreNames.contains('books')) {
-        db.createObjectStore('books', { keyPath: 'id' });
-      }
-
-      // GENRES
-      if (!db.objectStoreNames.contains('genres')) {
-        db.createObjectStore('genres', { keyPath: 'id' });
-      }
-
-      // REVIEWS
-      // REVIEWS
-if (!db.objectStoreNames.contains('reviews')) {
-  const reviewStore = db.createObjectStore('reviews', { keyPath: 'id' });
-  reviewStore.createIndex('book_id_idx', 'book_id', { unique: false });
-  reviewStore.createIndex('status_idx', 'status', { unique: false }); // ✅ dodaj ovaj red
-}
-
-
-      // IMAGES
-      if (!db.objectStoreNames.contains('images')) {
-        db.createObjectStore('images');
-      }
-
-      // LOANS
-      if (!db.objectStoreNames.contains('loans')) {
-        db.createObjectStore('loans', { keyPath: 'loan_id' });
-      }
-
-      // PENDING LOANS
-      if (!db.objectStoreNames.contains('pendingLoans')) {
-        db.createObjectStore('pendingLoans', { keyPath: 'id', autoIncrement: true });
-      }
-
-      // USERS
-      if (!db.objectStoreNames.contains('users')) {
-        const userStore = db.createObjectStore('users', { keyPath: 'id' }); // možeš koristiti UUID ili backend id
-        userStore.createIndex('email_idx', 'email', { unique: true }); // ⚠️ dodajemo indeks na email
-      }
-    },
-  });
-}
-
-
-
-// --- Funkcije za rad sa slikama ---
-
-// Spremi Blob slike pod ključ (npr. bookId)
-export async function saveImage(key, blob) {
-  const db = await initDB();
-  return db.put(STORE_IMAGES, blob, key);
-}
-
-// Dohvati Blob slike po ključu (npr. bookId)
-export function getImage(bookId) {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open("LibraryDB", 8);
-
-    request.onsuccess = () => {
-      const db = request.result;
-      const transaction = db.transaction("images", "readonly");
-      const store = transaction.objectStore("images");
-      const getRequest = store.get(bookId);
-
-      getRequest.onsuccess = () => resolve(getRequest.result);
-      getRequest.onerror = () => reject();
-    };
-
-    request.onerror = () => reject();
-  });
-}
-
-
-// Uzmi sliku s URL-a i vrati Blob
-export async function fetchImageAsBlob(url) {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error('Failed to fetch image');
-  return response.blob();
-}
-
-// Skini sliku i spremi u IndexedDB, vrati URL za <img src>
-export async function fetchAndSaveImage(bookId, imageUrl) {
-  try {
-    const blob = await fetchImageAsBlob(imageUrl);
-    await saveImage(bookId, blob);
-    return URL.createObjectURL(blob);
-  } catch (err) {
-    console.error('Error fetching and saving image:', err);
-    return null;
-  }
-}
-
-// Default slika ako učitavanje slike ne uspije
-export const handleImageError = (e) => {
-  e.target.src = '/images/default-book.png';
-};
-
-// --- Funkcije za knjige ---
-
-export async function saveBook(book) {
-  const db = await initDB();
-  return db.put(STORE_BOOKS, book);
-}
-
-export async function getBook(id) {
-  const db = await initDB();
-  return db.get(STORE_BOOKS, id);
-}
-
-export async function getAllBooks() {
-  const db = await initDB();
-  return db.getAll(STORE_BOOKS);
-}
-
-// --- Funkcije za žanrove ---
-
-export async function saveGenre(genre) {
-  const db = await initDB();
-  return db.put(STORE_GENRES, genre);
-}
-
-export async function getGenre(id) {
-  const db = await initDB();
-  return db.get(STORE_GENRES, id);
-}
-
-export async function getAllGenres() {
-  const db = await initDB();
-  return db.getAll(STORE_GENRES);
-}
-
-// --- Funkcije za recenzije ---
-
-export async function saveReview(review) {
-  const db = await initDB();
-  if (!review.id) {
-    review.id = crypto.randomUUID();  // Generira novi id ako ga nema
-  }
-  return db.put(STORE_REVIEWS, review);
-}
-
-export async function getReview(id) {
-  const db = await initDB();
-  return db.get(STORE_REVIEWS, id);
-}
-
-export async function getAllReviews() {
-  const db = await initDB();
-  return db.getAll(STORE_REVIEWS);
-}
-
-export const saveReviewsToIndexedDB = async (reviews) => {
-  const db = await initDB();
-  const tx = db.transaction(STORE_REVIEWS, "readwrite");
-  const store = tx.objectStore(STORE_REVIEWS);
-  await store.clear();
-  for (const review of reviews) {
-    if (!review.id) {
-      review.id = crypto.randomUUID(); // Dodaj ID ako ga nema
-    }
-    await store.put(review);
-  }
-  await tx.done;
-};
-
-
-export const loadReviewsForBookFromIndexedDB = async (bookId) => {
-  const db = await initDB();
-  const tx = db.transaction(STORE_REVIEWS, "readonly");
-  const store = tx.objectStore(STORE_REVIEWS);
-  const index = store.index('book_id_idx');
-const reviews = await index.getAll(bookId);
-return reviews;
-
-};
-
-// Spremi recenzije za knjigu u IndexedDB
-export async function saveReviews(bookId, reviews) {
-  const db = await initDB();
-  const tx = db.transaction(STORE_REVIEWS, 'readwrite');
-  const store = tx.objectStore(STORE_REVIEWS);
-
-  // Očisti stare recenzije za tu knjigu
-  const allReviews = await store.getAll();
-  for (const review of allReviews) {
-    if (review.book_id === bookId) {
-      await store.delete(review.id);
-    }
-  }
-
-  for (const review of reviews) {
-  const reviewWithId = { ...review, book_id: bookId };
-  if (!reviewWithId.id) {
-    reviewWithId.id = crypto.randomUUID();
-  }
-  await store.put(reviewWithId);
-}
-
-  await tx.done;
-}
-
-// Dohvati recenzije za knjigu iz IndexedDB
-export async function loadReviews(bookId) {
-  const db = await initDB();
-  const tx = db.transaction(STORE_REVIEWS, 'readonly');
-  const store = tx.objectStore(STORE_REVIEWS);
-
-  const allReviews = await store.getAll();
-  return allReviews.filter((review) => review.book_id === bookId);
-}
-export async function saveReviewOffline(review) {
-  const db = await initDB();
-  if (!review.id) {
-    review.id = crypto.randomUUID();
-  }
-  return db.put(STORE_REVIEWS, { ...review, status: 'pending' });
-}
-
-
-export async function getPendingReviews() {
-  const db = await initDB();
- const tx = db.transaction(STORE_REVIEWS, 'readonly');
-const store = tx.objectStore(STORE_REVIEWS);
-const index = store.index('status_idx');
-return await index.getAll('pending');
-
-}
-export async function syncPendingReviews() {
-  const pendingReviews = await getPendingReviews();
-
-  for (const review of pendingReviews) {
-    try {
-      const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(review),
-      });
-
-      if (!response.ok) throw new Error('Failed to sync review');
-
-      const savedReview = await response.json(); // <- dobivena recenzija s ID-em i svim podacima
-
-      const db = await initDB();
-
-      // 1. Obriši pending verziju
-      await db.delete(STORE_REVIEWS, review.id);
-
-      // 2. Spremi novu, sinkroniziranu verziju
-      await db.put(STORE_REVIEWS, { ...savedReview, status: 'synced' });
-
-    } catch (err) {
-      console.error('Error syncing review:', err);
-    }
-  }
-}
-
-
-// --- Funkcije za posudbe (loans) ---
-
-export async function saveLoan(loan) {
-  const db = await initDB();
-  return db.put(STORE_LOANS, loan);
-}
-
-export async function getLoan(id) {
-  const db = await initDB();
-  return db.get(STORE_LOANS, id);
-}
-
-export async function getAllLoans() {
-  const db = await initDB();
-  return db.getAll(STORE_LOANS);
-}
-
-// Dohvati sve posudbe za određenog korisnika (filter po user_id)
-export async function getLoansForUser(userId) {
-  const db = await initDB();
-  const allLoans = await db.getAll(STORE_LOANS);
-  return allLoans.filter(loan => loan.user_id === userId);
-}
-
-
-
-// Spremi offline posudbu s statusom pending za kasniju sinkronizaciju
-export async function saveLoanOffline(loan) {
-  const db = await initDB();
-  return db.put(STORE_LOANS, { ...loan, status: 'pending' });
-}
-
-// Dohvati posudbe koje još nisu sinkronizirane
-export async function getPendingLoans() {
-  const db = await initDB();
-  const allLoans = await db.getAll(STORE_LOANS);
-  return allLoans.filter(loan => loan.status === 'pending');
-}
-
-// Sinkroniziraj posudbe koje su offline napravljene
-export async function syncPendingLoans() {
-  const pendingLoans = await getPendingLoans();
-
-  for (const loan of pendingLoans) {
-    try {
-      // Pošalji posudbu na backend API (promijeni URL i strukturu prema tvojem API-ju)
-      const response = await fetch('/api/loans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loan),
-      });
-
-      if (!response.ok) throw new Error('Failed to sync loan');
-
-      // Ako je uspješno, izbriši posudbu iz IndexedDB
-      const db = await initDB();
-      await db.delete(STORE_LOANS, loan.loan_id);
-
-    } catch (err) {
-      console.error('Error syncing loan:', err);
-      // Ostavi loan za kasniju sinkronizaciju
-    }
-  }
-}
-
-// Provjera postoji li posudba s određenim loan_id u IndexedDB
-export async function doesLoanExist(loanId) {
-  const db = await initDB();
-  const loan = await db.get(STORE_LOANS, loanId);
-  return loan !== undefined;
-}
-
-
-
-
-// Dodaj posudbe u IndexedDB
-export async function saveLoans(loans) {
-  const db = await initDB();
-  const tx = db.transaction(STORE_LOANS, 'readwrite');
-  const store = tx.objectStore(STORE_LOANS);
-  for (const loan of loans) {
-    await store.put(loan);
-  }
-  await tx.done;
-}
-
-// Dohvati posudbe iz IndexedDB
-export async function getLoansByUserId(userId) {
-  const db = await initDB();
-  const store = db.transaction(STORE_LOANS).objectStore(STORE_LOANS);
-  const allLoans = await store.getAll();
-  return allLoans.filter(loan => loan.user_id === userId);
-}
-
-
-
-
-
-
-
-
-export async function fetchAndSaveLoanImages(userId) {
-  const loans = await getLoansByUserId(userId);
-  for (const loan of loans) {
-    const book = await getBook(loan.book_id);
-    if (book && book.image_url) {
-      try {
-        const imageBlob = await fetchImageAsBlob(book.image_url);
-        await saveImage(book.id, imageBlob);
-      } catch (error) {
-        console.error(`Greška pri dohvaćanju slike za knjigu ${book.title}:`, error);
-      }
-    }
-  }
-}*/
-
-
-
 
 import { openDB } from 'idb';
+import axios from "axios"; 
 
 const DB_NAME = 'LibraryDB';
-const DB_VERSION = 10;
+const DB_VERSION = 11;
 
 const STORE_BOOKS = 'books';
 const STORE_GENRES = 'genres';
@@ -426,7 +37,10 @@ export async function initDB() {
 if (!db.objectStoreNames.contains("pending_returns")) {
   db.createObjectStore("pending_returns", { keyPath: "id" });
 }
-
+if (!db.objectStoreNames.contains('loans')) {
+  const store = db.createObjectStore('loans', { keyPath: 'loan_id' });
+  store.createIndex('user_id_idx', 'user_id', { unique: false });
+}
 
     }
   });
@@ -540,11 +154,11 @@ export async function syncPendingReviews() {
       try {
         savedReview = await response.json();
       } catch {
-        // ako nije JSON (možda vraća samo poruku)
+       
         savedReview = {};
       }
       const db = await initDB();
-      // OBRATI PAŽNJU: id MORA POSTOJATI!
+      
       const reviewToSave = { ...review, ...savedReview, status: 'synced' };
       if (!reviewToSave.id) reviewToSave.id = review.id;
       await db.put(STORE_REVIEWS, reviewToSave);
@@ -574,7 +188,7 @@ export async function deletePendingLoan(id) {
 export async function saveMyActiveLoansOffline(loans) {
   const db = await initDB();
   if (!db.objectStoreNames.contains('myActiveLoans')) {
-    // Ako objektni spremnik ne postoji (prvi put), kreiraj ga!
+  
     db.close();
     await openDB('LibraryDB', 10, {
       upgrade(db) {
@@ -606,10 +220,11 @@ export async function getMyActiveLoansOffline() {
 const STORE_PENDING_RETURNS = "pending_returns";
 
 export async function savePendingReturn(loan_id) {
+  console.log("savePendingReturn zvan za loan_id:", loan_id);
   const db = await initDB();
-  // Možeš koristiti loan_id kao ključ, ne trebaš više polja.
   return db.put(STORE_PENDING_RETURNS, { id: loan_id, loan_id });
 }
+
 
 export async function getAllPendingReturns() {
   const db = await initDB();
@@ -619,4 +234,134 @@ export async function getAllPendingReturns() {
 export async function deletePendingReturn(id) {
   const db = await initDB();
   return db.delete(STORE_PENDING_RETURNS, id);
+}
+
+
+
+//Sprema sve posudbe (loans) u IndexedDB 
+export async function saveLoansToIndexedDB(loans, user_id) {
+  const db = await initDB();
+  const tx = db.transaction('loans', "readwrite");
+  const store = tx.objectStore('loans');
+  await store.clear();
+  for (const loan of loans) {
+    
+    await store.put({ ...loan, user_id: loan.user_id || user_id });
+  }
+  await tx.done;
+}
+
+export async function getLoansForUserFromIndexedDB(user_id) {
+  const db = await initDB();
+  const tx = db.transaction('loans', 'readonly');
+  const store = tx.objectStore('loans');
+  const allLoans = await store.getAll();
+  // Vrati samo one za korisnika
+  return allLoans.filter(loan => loan.user_id === user_id);
+}
+
+
+
+// Sinkronizacija offline vraćanja (pending_returns)
+export async function syncPendingReturns(userId = null) {
+  const pending = await getAllPendingReturns();
+  for (const ret of pending) {
+    try {
+      const res = await fetch(`http://localhost:3001/loans/${ret.loan_id}/return`, { method: "PATCH" });
+      if (res.ok) {
+        await deletePendingReturn(ret.id);
+      }
+    } catch (e) {
+      console.error("Greška pri sinkronizaciji povrata:", e);
+    }
+  }
+
+  // Nakon sinkronizacije, ažuriraj lokalne posudbe ako je userId poznat
+  try {
+ 
+    const id = userId || JSON.parse(localStorage.getItem("user"))?.id;
+    if (id) {
+      const response = await fetch(`http://localhost:3001/loans/${id}`);
+      if (response.ok) {
+        const freshLoans = await response.json();
+        await saveLoansToIndexedDB(freshLoans, id); 
+      }
+    }
+  } catch (e) {
+    console.warn("Ne mogu refreshati posudbe nakon sync-a returns:", e);
+  }
+}
+
+
+// Vraca SVE posudbe za usera (i pending i syncane, bez duplikata)
+export async function getAllUserLoansCombined(user_id) {
+  const savedLoans = await getLoansForUserFromIndexedDB(user_id);
+  const pendingLoans = await getAllPendingLoans();
+  const myPendingLoans = pendingLoans.filter(l => l.user_id === user_id);
+
+  // GLEDAJ SAMO AKTIVNE! 
+  const syncaniBookIds = new Set(
+    savedLoans
+      .filter(l => l.return_date == null)
+      .map(l => l.book_id)
+  );
+
+  // Prikaži pending samo ako NE postoji AKTIVNA za taj book_id
+  const pendingLoanObjects = myPendingLoans
+    .filter(l => !syncaniBookIds.has(l.book_id))
+    .map(l => ({
+      loan_id: "pending_" + l.book_id,
+      book_id: l.book_id,
+      title: "NEPOZNATO (offline)",
+      author: "",
+      loan_date: "Offline",
+      return_date: null,
+      status: "Čeka sinkronizaciju",
+      ...l
+    }));
+
+  return [...savedLoans, ...pendingLoanObjects];
+}
+
+
+
+// --- U indexedDB-utils.js ---
+
+
+export async function syncPendingLoans(userId = null) {
+  const pendingLoans = await getAllPendingLoans();
+  for (const loan of pendingLoans) {
+    try {
+      const response = await axios.post("http://localhost:3001/loans", {
+        user_id: loan.user_id,
+        book_id: loan.book_id,
+      });
+      if (response.status === 201) {
+        await deletePendingLoan(loan.id);
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "";
+      if (
+        errorMessage.includes("Već ste posudili ovu knjigu") ||
+        errorMessage.includes("Nema dostupnih primjeraka")
+      ) {
+        await deletePendingLoan(loan.id);
+        alert(errorMessage + " (Lokalna offline posudba uklonjena iz reda.)");
+      }
+      console.error("Greška pri sinkronizaciji offline posudbe:", err);
+    }
+  }
+ 
+  try {
+    const id = userId || JSON.parse(localStorage.getItem("user"))?.id;
+    if (id) {
+      const response = await axios.get(`http://localhost:3001/loans/${id}`);
+      if (response.status === 200) {
+        const freshLoans = response.data;
+        await saveLoansToIndexedDB(freshLoans, id);
+      }
+    }
+  } catch (e) {
+    console.warn("Ne mogu refreshati posudbe nakon sync-a loans:", e);
+  }
 }

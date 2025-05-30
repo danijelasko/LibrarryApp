@@ -1,10 +1,8 @@
 /* Container glavnog dijela stranice */
 .profile-container {
-  position: relative;
   min-height: 100vh;
-  font-family: 'Segoe UI', sans-serif;
-  background-color: #f9f9f9;
-  padding: 2rem;
+  background: #fafbfc;
+  padding-top: 40px;
 }
 
 /* Gumb za povratak na početnu */
@@ -21,22 +19,34 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
-/* Glavni flex kontejner koji drži profil i posudbe */
-.main-flex {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 2rem;
-  margin-top: 3rem;
-}
 
 /* Profil kartica */
 .profile-card {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  width: 400px;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 6px 30px rgba(40,58,94,0.11);
+  padding: 40px 32px 32px 32px;
+  width: 510px;
+  margin: 60px auto 0 auto;
+  text-align: center;
+  position: relative;
+}
+
+.user-info {
+  background: #f7f8fb;
+  border-radius: 12px;
+  padding: 15px 0 13px 0;
+  margin: 16px 0;
+  font-size: 1.08rem;
+  color: #262c34;
+  letter-spacing: .01em;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: center;
+}
+.user-info .icon {
+  font-size: 1.11em;
 }
 
 /* Header profil dijela */
@@ -63,10 +73,7 @@
   margin-top: 0.25rem;
 }
 
-/* Tekstovi korisničkih podataka */
-.user-info {
-  margin-bottom: 1rem;
-}
+
 
 /* Gumbi unutar profila */
 .profile-card button {
@@ -81,18 +88,36 @@
 }
 
 /* Prikaz/sakrij posudbe - plavi ili sivi gumb */
+.loans-toggle-button, .logout-button {
+  border-radius: 10px;
+  margin-top: 10px;
+  font-size: 1.07rem;
+  font-weight: 500;
+  padding: 11px 0;
+  width: 100%;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.18s, color 0.13s, transform 0.14s;
+}
 .loans-toggle-button {
-  background-color: #3498db;
+  background: #249ff9;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.loans-toggle-button:hover { background: #1b7ec5; }
+.logout-button { background: #273042; color: #fff; }
+.logout-button:hover { background: #232836; }
+
+.main-flex {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 14px;   /* ili još manje, npr. 10px */
+  margin-top: 3rem;
 }
 
-.loans-toggle-button.active {
-  background-color: #555;
-}
-
-/* Odjava gumb */
-.logout-button {
-  background-color: #2c3e50;
-}
 
 /* Posudbe kartica */
 .loans-card {
@@ -103,6 +128,7 @@
   width: 600px;
   max-height: 80vh;
   overflow-y: auto;
+  margin-right: 100px;
 }
 
 /* Naslov posudbi */
@@ -158,6 +184,45 @@
 .loan-item p {
   margin: 0;
 }
+.vrati_button{
+ padding: 0.5rem 1rem;
+  background-color: rgb(109, 116, 116);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background-color 0.2s ease;
+
+  
+}
+.vrati_button:hover {
+  background-color: #555;
+}
+
+.profile-header .small-text {
+    font-size: 16px;
+}
+
+.profile-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #44b0ff 60%, #2d2c83 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px auto;
+  font-size: 2.5rem;
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(50,80,190,0.09);
+}
+
+.profile-email {
+  color: #7b7b93;
+  font-size: 1.05rem;
+  margin-bottom: 18px;
+}
 
 /* Gumb za dodavanje/sakrij recenziju */
 .review-toggle-button {
@@ -210,3 +275,7 @@
   background-color: #219150;
 }
 
+@media (max-width: 1100px) {
+  .main-flex { flex-direction: column; align-items: center; gap: 18px; }
+  .profile-card { margin-top: 35px; }
+}
