@@ -211,45 +211,79 @@ useEffect(() => {
 
 
   // POSUDBA KNJIGE
-  const handleLoan = async (bookId) => {
+ const handleLoan = async (bookId) => {
   const user_id = parseInt(localStorage.getItem("user_id"));
   if (!user_id || !bookId) return;
 
-  // Prvo provjeri je li već posuđeno
+  // 1. Provjeri je li već posuđeno
   const alreadyLoaned = myActiveLoans.some(loan => loan.book_id === bookId && loan.return_date == null);
   if (alreadyLoaned) {
     alert("Već ste posudili ovu knjigu!");
     return;
   }
 
+  // 2. Optimistic update za posudbe:
+  setMyActiveLoans(prev => [...prev, { book_id: bookId, user_id, id: Date.now(), return_date: null }]);
+
+  // 3. Optimistic update za broj primjeraka:
+  setBooks(prevBooks => prevBooks.map(book =>
+    book.id === bookId
+      ? { ...book, available_now: (book.available_now || book.available_copies || 1) - 1 }
+      : book
+  ));
+
+  // isto i za filteredBooks ako koristiš!
+  setFilteredBooks(prevBooks => prevBooks.map(book =>
+    book.id === bookId
+      ? { ...book, available_now: (book.available_now || book.available_copies || 1) - 1 }
+      : book
+  ));
+
+  // 4. OFFLINE posudba
   if (!navigator.onLine) {
     await savePendingLoan({ user_id, book_id: bookId });
-    // Dodaj odmah i u offline aktivne posudbe:
-    setMyActiveLoans(prev => [...prev, { book_id: bookId, user_id, id: Date.now(), return_date: null }]);
     alert("Posudba spremljena offline i bit će sinkronizirana kad se povežeš na internet.");
     return;
   }
 
+  // 5. ONLINE — šalji na backend
   try {
-
-    setMyActiveLoans(prev => [...prev, { book_id: bookId, user_id, id: Date.now(), return_date: null }]);
-    
     const response = await axios.post("http://localhost:3001/loans", { user_id, book_id: bookId });
     if (response.status === 201) {
       alert("Knjiga posuđena!");
-      
-      await fetchBooksAndGenres();
-      await fetchActiveLoans();
+      // NE refrešaj odmah knjige, osim ako baš želiš sinkronizirati s backendom
     } else if (response.data && response.data.message) {
       alert(response.data.message);
-      // Ako server javlja grešku, makni iz myActiveLoans!
+      // Otkazuj optimistic update ako je server javio grešku
       setMyActiveLoans(prev => prev.filter(l => l.book_id !== bookId));
+      setBooks(prevBooks => prevBooks.map(book =>
+        book.id === bookId
+          ? { ...book, available_now: (book.available_now || book.available_copies || 1) + 1 }
+          : book
+      ));
+      setFilteredBooks(prevBooks => prevBooks.map(book =>
+        book.id === bookId
+          ? { ...book, available_now: (book.available_now || book.available_copies || 1) + 1 }
+          : book
+      ));
     }
   } catch (error) {
     alert("Greška pri posudbi.");
+    // Otkazuj optimistic update i za broj primjeraka
     setMyActiveLoans(prev => prev.filter(l => l.book_id !== bookId));
+    setBooks(prevBooks => prevBooks.map(book =>
+      book.id === bookId
+        ? { ...book, available_now: (book.available_now || book.available_copies || 1) + 1 }
+        : book
+    ));
+    setFilteredBooks(prevBooks => prevBooks.map(book =>
+      book.id === bookId
+        ? { ...book, available_now: (book.available_now || book.available_copies || 1) + 1 }
+        : book
+    ));
   }
 };
+
 
 
   // --- Dohvat recenzija ---

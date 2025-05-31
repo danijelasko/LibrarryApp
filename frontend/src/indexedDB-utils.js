@@ -401,10 +401,25 @@ export async function saveUsersToIndexedDB(users) {
   const db = await initDB();
   const tx = db.transaction('users', 'readwrite');
   const store = tx.objectStore('users');
-  await store.clear();
-  for (const user of users) await store.put(user);
+
+  // Nemoj raditi await store.clear(); 
+  // Ovime NE brišemo sve stare usere! Mergeamo ih s novima
+
+  for (const user of users) {
+    // Pokušaj pronaći usera po ID-u u IndexedDB
+    const existingUser = await store.get(user.id);
+
+    // Ako već postoji user i ima spremljen password, zadrži taj password
+    if (existingUser && existingUser.password) {
+      user.password = existingUser.password;
+    }
+    // Inače, user dolazi bez passworda (npr. kod prvog synca), ostaje bez
+    await store.put(user);
+  }
+
   await tx.done;
 }
+
 
 export async function getAllUsersFromIndexedDB() {
   const db = await initDB();
