@@ -286,6 +286,125 @@ def get_reviews_by_book(book_id):
 
 
 
+# Ruta: DOHVATI SVE KORISNIKE (admin funkcija)
+@app.route('/users/all', methods=['GET'])
+def get_all_users():
+    try:
+        conn = get_db_connection()
+        users = conn.execute(
+            "SELECT id, username, email, first_name, last_name, role FROM Users"
+        ).fetchall()
+        conn.close()
+        return jsonify([dict(user) for user in users])
+    except Exception as e:
+        print("Greška pri dohvaćanju korisnika:", e)
+        return jsonify({"error": "Ne mogu dohvatiti korisnike."}), 500
+
+
+
+
+
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    try:
+        conn = get_db_connection()
+        # Prvo obriši povezane recenzije i posudbe
+        conn.execute("DELETE FROM Reviews WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM Loans WHERE user_id = ?", (user_id,))
+        # Onda korisnika
+        conn.execute("DELETE FROM Users WHERE id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "Korisnik obrisan."}), 200
+    except Exception as e:
+        print("Greška pri brisanju korisnika:", e)
+        return jsonify({"error": "Ne mogu obrisati korisnika."}), 500
+
+
+@app.route('/books', methods=['POST'])
+def add_book():
+    try:
+        data = request.get_json()
+        title = data.get('title')
+        author = data.get('author')
+        year = data.get('year')
+        genre_id = data.get('genre_id')
+        available_copies = data.get('available_copies')
+        description = data.get('description', '')
+        image = data.get('image', '')
+
+        if not all([title, author, year, genre_id, available_copies]):
+            return jsonify({"error": "Sva polja osim opisa i slike su obavezna."}), 400
+
+        conn = get_db_connection()
+        conn.execute("""
+            INSERT INTO Books (title, author, year, genre_id, available_copies, description, image)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (title, author, year, genre_id, available_copies, description, image))
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": "Knjiga je uspješno dodana."}), 201
+
+    except Exception as e:
+        print("Greška pri dodavanju knjige:", e)
+        return jsonify({"error": "Greška na serveru."}), 500
+
+
+
+
+
+
+@app.route('/books/<int:book_id>', methods=['DELETE'])
+def delete_book(book_id):
+    try:
+        conn = get_db_connection()
+        # Prvo obrisi sve posudbe i recenzije vezane uz tu knjigu
+        conn.execute("DELETE FROM Loans WHERE book_id = ?", (book_id,))
+        conn.execute("DELETE FROM Reviews WHERE book_id = ?", (book_id,))
+        conn.execute("DELETE FROM Books WHERE id = ?", (book_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Knjiga obrisana.'}), 200
+    except Exception as e:
+        print("Greška pri brisanju knjige:", e)
+        return jsonify({'error': 'Ne mogu obrisati knjigu.'}), 500
+
+
+
+
+@app.route('/books/<int:book_id>', methods=['PATCH', 'PUT'])
+def update_book(book_id):
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        conn.execute("""
+            UPDATE Books
+            SET title = ?, author = ?, year = ?, genre_id = ?, available_copies = ?, description = ?, image = ?
+            WHERE id = ?
+        """, (
+            data.get('title', ''),
+            data.get('author', ''),
+            data.get('year', None),
+            data.get('genre_id', None),
+            data.get('available_copies', 1),
+            data.get('description', ''),
+            data.get('image', ''),
+            book_id
+        ))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Knjiga ažurirana.'}), 200
+    except Exception as e:
+        print("Greška pri ažuriranju knjige:", e)
+        return jsonify({'error': 'Ne mogu ažurirati knjigu.'}), 500
+
+
+
+
+
+
+
 
 
 

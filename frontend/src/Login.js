@@ -1,11 +1,10 @@
 
-
 import React, { useState } from "react";
 import "./Login.css";
 import booksImg from "./assets/books.png";
 import { useNavigate } from "react-router-dom";
 import { initDB } from './indexedDB-utils';
-
+import { getAllUsersFromIndexedDB } from "./indexedDB-utils";
 const Login = ({ onLogin }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,46 +24,50 @@ const Login = ({ onLogin }) => {
     }
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError(""); // reset error
-    try {
-      const res = await fetch(
-        `http://localhost:3001/users?email=${email}&password=${password}`
-      );
-      const data = await res.json();
 
-      if (data.length > 0) {
-        const user = data[0];
-        onLogin(user);
-        localStorage.setItem("user_id", user.id); // spremi ID 
-        await saveUserToIndexedDB({ ...user, password });
+
+
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError("");
+  try {
+    // ONLINE login
+    const res = await fetch(
+      `http://localhost:3001/users?email=${email}&password=${password}`
+    );
+    const data = await res.json();
+
+    if (data.length > 0) {
+      const user = data[0];
+      onLogin(user);
+      localStorage.setItem("user_id", user.id);
+      localStorage.setItem("user", JSON.stringify(user));
+      await saveUserToIndexedDB({ ...user, password });
+      navigate("/home");
+    } else {
+      setError("Pogrešan email ili lozinka");
+    }
+  } catch (err) {
+    // OFFLINE login: pretraži cijelu users tablicu
+    try {
+      const users = await getAllUsersFromIndexedDB();
+      const found = users.find(
+        u => u.email === email && u.password === password
+      );
+      if (found) {
+        onLogin(found);
+        localStorage.setItem("user_id", found.id);
+        localStorage.setItem("user", JSON.stringify(found));
         navigate("/home");
       } else {
-        setError("Pogrešan email ili lozinka");
+        setError("Nema takvog korisnika spremljenog offline ili lozinka nije ispravna");
       }
-    } catch (err) {
-      // Ako nema interneta, pokušaj offline login iz IndexedDB po email_idx
-      try {
-        const db = await initDB();
-        const tx = db.transaction("users", "readonly");
-        const store = tx.objectStore("users");
-        const index = store.index("email_idx");
-        const user = await index.get(email);
-
-        if (user && user.password === password) {
-          onLogin(user);
-          localStorage.setItem("user_id", user.id); // spremi ID 
-          navigate("/home");
-        } else {
-          setError("Nema takvog korisnika spremljenog offline ili lozinka nije ispravna");
-        }
-      } catch (dbErr) {
-        setError("Greška pri pristupu lokalnoj bazi podataka");
-        console.error(dbErr);
-      }
+    } catch (dbErr) {
+      setError("Greška pri pristupu lokalnoj bazi podataka");
+      console.error(dbErr);
     }
-  };
+  }
+};
 
  return (
   <div className="login-container">
@@ -109,3 +112,6 @@ const Login = ({ onLogin }) => {
 };
 
 export default Login;
+
+
+

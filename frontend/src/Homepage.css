@@ -348,9 +348,42 @@
 }
 
 
+
+.admin-btn {
+  background: linear-gradient(90deg, #e4e2d3 70%, #e2dac0 100%);
+  color: #363636;
+  border: none;
+  padding: 10px 22px;
+  font-size: 1.08em;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: 0 3px 13px rgba(45, 49, 66, 0.08);
+  margin: 12px 0 0 0;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(.4,0,.2,1);
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.admin-btn:hover, .admin-btn:focus {
+  background: linear-gradient(90deg, #e8e2d1 0%, #cbc4af 100%);
+  color: #111;
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 7px 20px rgba(145, 110, 0, 0.18);
+}
+
+
+
+
+
+
 @media (max-width: 600px) {
   .filter-card {
     padding: 14px 5px;
     min-width: 0;
   }
 }
+
+
+

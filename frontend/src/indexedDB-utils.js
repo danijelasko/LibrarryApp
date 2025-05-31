@@ -73,6 +73,7 @@ export async function fetchAndSaveImage(bookId, imageUrl) {
 
 // ---- Knjige ----
 export async function saveBooks(books) {
+    console.log("SPREMAM KNJIGE U INDEXEDDB:", books); // dodaj ovo
   const db = await initDB();
   const tx = db.transaction(STORE_BOOKS, "readwrite");
   const store = tx.objectStore(STORE_BOOKS);
@@ -325,7 +326,7 @@ export async function getAllUserLoansCombined(user_id) {
 
 
 
-// --- U indexedDB-utils.js ---
+
 
 
 export async function syncPendingLoans(userId = null) {
@@ -364,4 +365,48 @@ export async function syncPendingLoans(userId = null) {
   } catch (e) {
     console.warn("Ne mogu refreshati posudbe nakon sync-a loans:", e);
   }
+}
+
+
+
+
+
+
+//admin
+
+export async function deleteUserAndRelatedDataFromIndexedDB(userId) {
+  const db = await initDB();
+
+  // Briši korisnika iz "users" storea
+  await db.delete('users', userId);
+
+  // Briši njegove posudbe iz "loans" storea
+  const loans = await db.getAll('loans');
+  for (const loan of loans) {
+    if (loan.user_id === userId) {
+      await db.delete('loans', loan.loan_id);
+    }
+  }
+
+  // Briši njegove recenzije iz "reviews" storea
+  const reviews = await db.getAll('reviews');
+  for (const review of reviews) {
+    if (review.user_id === userId) {
+      await db.delete('reviews', review.id);
+    }
+  }
+
+}
+export async function saveUsersToIndexedDB(users) {
+  const db = await initDB();
+  const tx = db.transaction('users', 'readwrite');
+  const store = tx.objectStore('users');
+  await store.clear();
+  for (const user of users) await store.put(user);
+  await tx.done;
+}
+
+export async function getAllUsersFromIndexedDB() {
+  const db = await initDB();
+  return db.getAll('users');
 }

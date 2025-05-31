@@ -1,5 +1,4 @@
 
-// HomePage.js
 import "./Homepage.css";
 import axios from 'axios';
 import React, { useEffect, useState, useRef } from "react";
@@ -352,17 +351,8 @@ useEffect(() => {
     <p style={{ margin: "16px 0 0 0", color: "#555", fontSize: ".95em" }}>
       Prikazano <b>{filteredBooks.length}</b> od {books.length} knjiga
     </p>
-
-
-
-
-
         </div>
 
-
-
-
-        {/* --- MOOD PICKER --- */}
 <div className="mood-card">
   <label htmlFor="mood-select" className="mood-label">
     🧠 Kako se osjećaš danas?
@@ -406,10 +396,16 @@ useEffect(() => {
 
       </div>
 
-
-
-
       <div className="main-content">
+
+
+
+{user && user.role === "admin" && (
+  <button onClick={() => navigate("/admin")} className="admin-btn">
+    Admin panel
+  </button>
+)}
+
         <div className="welcome">
           Zavirite u ponudu naše knjižnice! <span role="img" aria-label="smile">😊</span>
           <br></br>

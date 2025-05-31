@@ -2,11 +2,13 @@ import sqlite3
 
 conn = sqlite3.connect('library.db')
 cursor = conn.cursor()
+
 cursor.execute("DROP TABLE IF EXISTS Books")
 
 
 cursor.execute("DROP TABLE IF EXISTS Loans")
 conn.commit()
+
 
 cursor.executescript("""
 CREATE TABLE IF NOT EXISTS Genres (
@@ -225,6 +227,18 @@ cursor.executemany("""
 """, reviews_to_insert)
 
 conn.commit()
+
+
+
+# 1. Dodaj stupac ako ne postoji
+
+cursor.execute("""
+    INSERT OR IGNORE INTO Users (username, password, email, first_name, last_name, phone, role)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+""", ('admin', 'tajna', 'admin@example.com', 'Admin', 'Adminić', '0911111111', 'admin'))
+conn.commit()
+
+
 
 
 conn.close()

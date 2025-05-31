@@ -38,11 +38,27 @@ export default function ProfilePage({ user: propUser, onLogout }) {
   const [loadingLoans, setLoadingLoans] = useState(false);
   const [error, setError] = useState(null);
   const [loansVisible, setLoansVisible] = useState(false);
+const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const [reviewFormVisible, setReviewFormVisible] = useState({});
   const [rating, setRating] = useState({});
   const [comment, setComment] = useState({});
   const [reviewStatus, setReviewStatus] = useState({}); // za ispis nakon slanja
+
+
+
+useEffect(() => {
+  const handleStatusChange = () => setIsOnline(navigator.onLine);
+  window.addEventListener('online', handleStatusChange);
+  window.addEventListener('offline', handleStatusChange);
+  return () => {
+    window.removeEventListener('online', handleStatusChange);
+    window.removeEventListener('offline', handleStatusChange);
+  };
+}, []);
+
+
+
 
   // --- Sync recenzija ---
   const handleSyncReviews = useCallback(async () => {
@@ -258,10 +274,18 @@ export default function ProfilePage({ user: propUser, onLogout }) {
   // --- Prikaz ---
   return (
     <div className="profile-container">
+
+
+
+       <div className={`status-badge ${isOnline ? "online" : "offline"}`}>
+        {isOnline ? "ONLINE" : "OFFLINE"}
+      </div>
       <div>
         <button onClick={goBackToHomepage} className="back-button">
           Početna
         </button>
+
+         
       </div>
 
       <div className="main-flex">
