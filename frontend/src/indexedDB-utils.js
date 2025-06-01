@@ -402,8 +402,7 @@ export async function saveUsersToIndexedDB(users) {
   const tx = db.transaction('users', 'readwrite');
   const store = tx.objectStore('users');
 
-  // Nemoj raditi await store.clear(); 
-  // Ovime NE brišemo sve stare usere! Mergeamo ih s novima
+
 
   for (const user of users) {
     // Pokušaj pronaći usera po ID-u u IndexedDB

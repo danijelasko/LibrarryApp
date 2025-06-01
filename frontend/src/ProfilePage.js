@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { syncPendingLoans } from "./indexedDB-utils";
+import { getAllBooks } from "./indexedDB-utils";
 
 
 import "./ProfilePage.css";
@@ -78,7 +79,7 @@ useEffect(() => {
   };
 
   // --- Dohvat posudbi (online i offline, kombinirano) ---
-  const fetchLoans = async () => {
+ const fetchLoans = async () => {
   let id = user.id || propUser?.id;
   if (!id) {
     try {
@@ -95,9 +96,8 @@ useEffect(() => {
   setError(null);
 
   try {
-    
+    // ONLINE: Fetchaj posudbe sa servera i spremi ih u IndexedDB
     if (navigator.onLine) {
-      // Fetch sa servera, spremi u IndexedDB!
       const response = await fetch(`http://localhost:3001/loans/${id}`);
       if (response.ok) {
         const loansFromServer = await response.json();
@@ -105,18 +105,33 @@ useEffect(() => {
       }
     }
 
-    //  pokupi sve, kombinirano, iz IndexedDB-a
+    // OFFLINE/ONLINE: Pokupi sve posudbe iz IndexedDB-a
     const allLoans = await getAllUserLoansCombined(id);
 
-    // Slike 
+    // Dohvati sve knjige iz IndexedDB-a
+    const allBooks = await getAllBooks();
+
+    // Za svaki loan, spoji podatke o knjizi
     const enrichedLoans = await Promise.all(
       allLoans.map(async (loan) => {
+        // Pronađi knjigu prema ID-u
+        const book = allBooks.find(b => b.id === loan.book_id);
+
+        // Dodaj podatke o knjizi (ako postoje)
+        if (book) {
+          loan.title = book.title;
+          loan.author = book.author;
+          loan.image = book.image;
+        }
+
+        // Slika
         try {
           const imageBlob = await getImage(loan.book_id);
           if (imageBlob) {
             loan.localImageUrl = URL.createObjectURL(imageBlob);
           }
-        } catch { }
+        } catch { /* ign */ }
+
         return loan;
       })
     );
@@ -128,7 +143,6 @@ useEffect(() => {
     setLoadingLoans(false);
   }
 };
-
 
   // --- Toggle loans prikaz ---
   const handleToggleLoans = () => {

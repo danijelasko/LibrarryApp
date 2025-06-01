@@ -456,23 +456,28 @@ useEffect(() => {
             <i>{b.author}</i> ({b.year}) <br />
             <small>Žanr: {b.genre}</small>
           </div>
-          <button
-            className="admin-edit-btn"
-            onClick={() =>
-              setEditBook({
-                ...b,
-                title: b.title || "",
-                author: b.author || "",
-                year: b.year || "",
-                genre_id: b.genre_id || "",
-                available_copies: b.available_copies || "",
-                description: b.description || "",
-                image: b.image || "",
-              })
-            }
-          >
-            ✏️
-          </button>
+         <button
+  className="admin-edit-btn"
+  onClick={() => {
+    setEditBook({
+      ...b,
+      title: b.title || "",
+      author: b.author || "",
+      year: b.year || "",
+      genre_id: b.genre_id || "",
+      available_copies: b.available_copies || "",
+      description: b.description || "",
+      image: b.image || "",
+    });
+    // Scrollaj do forme kad klikneš na edit
+    setTimeout(() => {
+      editSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100); // Mali delay da se forma sigurno prikaže
+  }}
+>
+  ✏️
+</button>
+
           <button
             className="admin-delete-btn"
             onClick={() => handleDeleteBook(b.id)}
