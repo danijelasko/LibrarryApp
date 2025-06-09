@@ -34,14 +34,11 @@
 - Unos i izmjena podataka izvan mreže
 - Funkcija pretraživanja i pregledavanja u predmemoriji
 - Sadržaj medija izvan mreže (naslovnice knjiga, pregledi)
-- Mogućnosti izvoza/uvoza za potrebe sigurnosne kopije
-
+ 
 #### Značajke sinkronizacije
 - Sinkronizacija u pozadini kada je veza dostupna
-- Selektivne opcije sinkronizacije za upravljanje propusnošću
-- Strategije rješavanja sukoba s korisnički definiranim postavkama
 - Pokazatelji statusa sinkronizacije i povijest
-- Sinkronizacija temeljena na prioritetu za kritične podatke
+
 
 #### SQLite shema (izvorne aplikacije)
 ```sql
