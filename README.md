@@ -25,26 +25,18 @@ Offline Library je sveobuhvatan sustav za upravljanje knjižnicom dizajniran za 
 
 ### Frontend
 - **CSS/JavaScript**: Osnovne web tehnologije
-- **Progresivna web aplikacija (PWA)**: Za mogućnosti izvan mreže i iskustvo instalacije
-- **Service Workers**: Omogućite funkcionalnost izvan mreže i sinkronizaciju u pozadini
 - **IndexedDB**: Pohrana na strani klijenta za perzistenciju izvanmrežnih podataka u preglednicima
 
 ### Backend
-- **Node.js**: Izvršno okruženje JavaScripta na strani poslužitelja
-- **Express.js**: Okvir web aplikacije
+-**Flask** : Glavni framework za web aplikacije i API-je u Pythonu.
 - **SQLite**: Lokalna baza podataka za varijantu desktop aplikacije
 - **RESTful API**: Za komunikaciju klijent-poslužitelj
+- **Python**: Komunikacija s bazom
 
 ### Pohrana podataka i sinkronizacija
 - **IndexedDB**: Baza podataka temeljena na pregledniku za izvanmrežnu pohranu web klijenta
 - **SQLite**: Ugrađena baza podataka za lokalnu pohranu u varijantama desktop aplikacije
 - **Sync adapteri**: Prilagođeni middleware za rukovanje sinkronizacijom podataka
-
-### Alati za razvoj
-- **Webpack**: Paketiranje modula i optimizacija izgradnje
-- **Babel**: JavaScript kompajler za kompatibilnost
-- **ESLint**: Kvaliteta i konzistentnost koda
-- **Jest**: Okvir za testiranje
 
 ## Arhitektura sustava
 
@@ -58,9 +50,7 @@ Izvanmrežna biblioteka prati hibridnu arhitekturu dizajniranu za otpornost i iz
 
 2. **Sloj sinkronizacije**
 - Sustav sinkronizacije temeljen na redu čekanja za praćenje izvanmrežnih promjena
-- Strategije rješavanja sukoba temeljene na vremenskim oznakama
 - Diferencijalna sinkronizacija za minimiziranje prijenosa podataka
-- Sustav prioritizacije za sinkronizaciju kritičnih podataka
 
 3. **Sloj poslužitelja**
 - RESTful API krajnje točke za CRUD operacije
