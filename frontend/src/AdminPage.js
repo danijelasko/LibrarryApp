@@ -16,7 +16,7 @@ export default function AdminPage({ user }) {
   const editSectionRef = useRef(null);
   const [books, setBooks] = useState([]);
   const [genres, setGenres] = useState([]);
-  const [imagesLoading, setImagesLoading] = useState(true);
+  const [imagesLoading, setImagesLoading] = useState(true); //prikaz dok se knjige ucitavaju
 
   const [editBook, setEditBook] = useState(null); // Sprema podatke o knjizi koju uređujemo
   const [form, setForm] = useState({
@@ -293,6 +293,8 @@ useEffect(() => {
           </div>
         )}
         <form className="admin-form" onSubmit={handleAddBook}>
+          
+
           <input
             type="text"
             placeholder="Naslov"
@@ -456,27 +458,27 @@ useEffect(() => {
             <i>{b.author}</i> ({b.year}) <br />
             <small>Žanr: {b.genre}</small>
           </div>
-         <button
-  className="admin-edit-btn"
-  onClick={() => {
-    setEditBook({
-      ...b,
-      title: b.title || "",
-      author: b.author || "",
-      year: b.year || "",
-      genre_id: b.genre_id || "",
-      available_copies: b.available_copies || "",
-      description: b.description || "",
-      image: b.image || "",
-    });
-    // Scrollaj do forme kad klikneš na edit
-    setTimeout(() => {
-      editSectionRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100); // Mali delay da se forma sigurno prikaže
-  }}
->
-  ✏️
-</button>
+                  <button
+            className="admin-edit-btn"
+            onClick={() => {
+              setEditBook({
+                ...b,
+                title: b.title || "",
+                author: b.author || "",
+                year: b.year || "",
+                genre_id: b.genre_id || "",
+                available_copies: b.available_copies || "",
+                description: b.description || "",
+                image: b.image || "",
+              });
+              // Scrollaj do forme kad klikneš na edit
+              setTimeout(() => {
+                editSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+              }, 100); // Mali delay da se forma sigurno prikaže
+            }}
+          >
+            ✏️
+          </button>
 
           <button
             className="admin-delete-btn"

@@ -1,5 +1,3 @@
-
-
 import os
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -10,27 +8,22 @@ app = Flask(__name__)
 CORS(app)
 
 def get_db_connection():
-  
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))   
     db_path = os.path.join(BASE_DIR, "library.db")          
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
- 
-
     return conn
 
 
-# Ruta za slike
-@app.route('/images/<path:filename>')
-def serve_image(filename):
-    return send_from_directory('static/images', filename)
+
+#KORISNICI
+
 
 # Registracija
-@app.route('/register', methods=['POST', 'OPTIONS'])
+@app.route('/register', methods=['POST', 'OPTIONS']) 
 def register():
     if request.method == 'OPTIONS':
         return '', 200
-
     try:
         data = request.get_json()
         username = data.get('username')
@@ -40,7 +33,6 @@ def register():
         last_name = data.get('last_name')
         phone = data.get('phone')
 
-        # Provjera obaveznih polja
         if not username or not email or not password or not first_name or not last_name or not phone:
             return jsonify({"error": "Sva polja su obavezna: username, email, password, first_name, last_name, phone."}), 400
 
@@ -63,16 +55,16 @@ def register():
         print("Greška u registraciji:", e)
         return jsonify({"error": "Došlo je do greške na serveru."}), 500
 
-# Login (ne šalje password natrag!)
+# Login 
 @app.route('/users', methods=['GET'])
 def get_user():
-    email = request.args.get('email')
+    email = request.args.get('email')#dohvaca iz query stringa u URL-u zahtjevu
     password = request.args.get('password')
 
-    if not email or not password:
+    if not email or not password: #ako nisu poslani znaci da nema korisnika s tim emailom i lozinkom
         return jsonify([])
 
-    conn = get_db_connection()
+    conn = get_db_connection() #konekcija prema bazi
     user = conn.execute(
         "SELECT * FROM Users WHERE email=? AND password=?",
         (email, password)
@@ -81,12 +73,45 @@ def get_user():
 
     if user:
         user_dict = dict(user)
-        user_dict.pop('password', None)  # ne šalji password!
+        user_dict.pop('password', None) #brisemo polje password da se lozinka ne šalje natrag korisniku
         return jsonify([user_dict])
     else:
         return jsonify([])
 
-# Lista knjiga s brojem dostupnih primjeraka!
+# Dohvati sve korisnike (admin)
+@app.route('/users/all', methods=['GET'])
+def get_all_users():
+    try:
+        conn = get_db_connection()
+        users = conn.execute(
+            "SELECT id, username, email, first_name, last_name, role FROM Users"
+        ).fetchall()
+        conn.close()
+        return jsonify([dict(user) for user in users])
+    except Exception as e:
+        print("Greška pri dohvaćanju korisnika:", e)
+        return jsonify({"error": "Ne mogu dohvatiti korisnike."}), 500
+
+# Brisanje korisnika
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    try:
+        conn = get_db_connection()
+        conn.execute("DELETE FROM Reviews WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM Loans WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM Users WHERE id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "Korisnik obrisan."}), 200
+    except Exception as e:
+        print("Greška pri brisanju korisnika:", e)
+        return jsonify({"error": "Ne mogu obrisati korisnika."}), 500
+
+
+#KNJIGE
+
+
+# Lista knjiga s brojem dostupnih primjeraka
 @app.route('/books', methods=['GET'])
 def get_books():
     try:
@@ -111,20 +136,7 @@ def get_books():
         print("Greška pri dohvaćanju knjiga:", e)
         return jsonify({"error": "Ne mogu dohvatiti knjige."}), 500
 
-# Žanrovi
-@app.route('/genres', methods=['GET'])
-def get_genres():
-    try:
-        conn = get_db_connection()
-        genres = conn.execute("SELECT name FROM Genres").fetchall()
-        conn.close()
-        genre_names = [genre['name'] for genre in genres]
-        return jsonify(genre_names)
-    except Exception as e:
-        print("Greška pri dohvaćanju žanrova:", e)
-        return jsonify({"error": "Ne mogu dohvatiti žanrove."}), 500
-
-# Knjige po žanru (opcionalno)
+# Knjige po žanru
 @app.route('/books/genre/<int:genre_id>', methods=['GET'])
 def get_books_by_genre(genre_id):
     try:
@@ -144,6 +156,98 @@ def get_books_by_genre(genre_id):
     except Exception as e:
         print("Greška pri dohvaćanju knjiga po žanru:", e)
         return jsonify({"error": "Ne mogu dohvatiti knjige za taj žanr."}), 500
+
+# Dodavanje knjige (admin)
+@app.route('/books', methods=['POST'])
+def add_book():
+    try:
+        data = request.get_json()
+        title = data.get('title')
+        author = data.get('author')
+        year = data.get('year')
+        genre_id = data.get('genre_id')
+        available_copies = data.get('available_copies')
+        description = data.get('description', '')
+        image = data.get('image', '')
+
+        if not all([title, author, year, genre_id, available_copies]):
+            return jsonify({"error": "Sva polja osim opisa i slike su obavezna."}), 400
+
+        conn = get_db_connection()
+        conn.execute("""
+            INSERT INTO Books (title, author, year, genre_id, available_copies, description, image)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (title, author, year, genre_id, available_copies, description, image))
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": "Knjiga je uspješno dodana."}), 201
+
+    except Exception as e:
+        print("Greška pri dodavanju knjige:", e)
+        return jsonify({"error": "Greška na serveru."}), 500
+
+# Ažuriranje knjige
+@app.route('/books/<int:book_id>', methods=['PATCH', 'PUT'])
+def update_book(book_id):
+    try:
+        data = request.get_json()
+        conn = get_db_connection()
+        conn.execute("""
+            UPDATE Books
+            SET title = ?, author = ?, year = ?, genre_id = ?, available_copies = ?, description = ?, image = ?
+            WHERE id = ?
+        """, (
+            data.get('title', ''),
+            data.get('author', ''),
+            data.get('year', None),
+            data.get('genre_id', None),
+            data.get('available_copies', 1),
+            data.get('description', ''),
+            data.get('image', ''),
+            book_id
+        ))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Knjiga ažurirana.'}), 200
+    except Exception as e:
+        print("Greška pri ažuriranju knjige:", e)
+        return jsonify({'error': 'Ne mogu ažurirati knjigu.'}), 500
+
+# Brisanje knjige
+@app.route('/books/<int:book_id>', methods=['DELETE'])
+def delete_book(book_id):
+    try:
+        conn = get_db_connection()
+        conn.execute("DELETE FROM Loans WHERE book_id = ?", (book_id,))
+        conn.execute("DELETE FROM Reviews WHERE book_id = ?", (book_id,))
+        conn.execute("DELETE FROM Books WHERE id = ?", (book_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Knjiga obrisana.'}), 200
+    except Exception as e:
+        print("Greška pri brisanju knjige:", e)
+        return jsonify({'error': 'Ne mogu obrisati knjigu.'}), 500
+
+
+#ŽANROVI
+
+
+@app.route('/genres', methods=['GET'])
+def get_genres():
+    try:
+        conn = get_db_connection()
+        genres = conn.execute("SELECT name FROM Genres").fetchall()
+        conn.close()
+        genre_names = [genre['name'] for genre in genres]
+        return jsonify(genre_names)
+    except Exception as e:
+        print("Greška pri dohvaćanju žanrova:", e)
+        return jsonify({"error": "Ne mogu dohvatiti žanrove."}), 500
+
+
+#POSUDBE
+
 
 # Posudbe korisnika
 @app.route('/loans/<int:user_id>', methods=['GET'])
@@ -166,7 +270,7 @@ def get_loans_by_user(user_id):
         print("Greška pri dohvaćanju posudbi:", e)
         return jsonify({"error": "Ne mogu dohvatiti posudbe korisnika."}), 500
 
-# Nova posudba – provjera broja dostupnih primjeraka!
+# Nova posudba – provjera dostupnosti
 @app.route('/loans', methods=['POST'])
 def add_loan():
     try:
@@ -178,8 +282,6 @@ def add_loan():
             return jsonify({"error": "Nedostaje user_id ili book_id."}), 400
 
         conn = get_db_connection()
-        
-        #Provjeri ima li ovaj korisnik već posudbu te knjige koja nije vraćena
         existing_loan = conn.execute(
             "SELECT * FROM Loans WHERE user_id = ? AND book_id = ? AND return_date IS NULL",
             (user_id, book_id)
@@ -188,7 +290,6 @@ def add_loan():
             conn.close()
             return jsonify({"message": "Već ste posudili ovu knjigu, prvo je vratite!"}), 400
 
-        # Broj trenutno posuđenih primjeraka
         loaned_count = conn.execute(
             "SELECT COUNT(*) FROM Loans WHERE book_id = ? AND return_date IS NULL", 
             (book_id,)
@@ -202,7 +303,6 @@ def add_loan():
             conn.close()
             return jsonify({"message": "Nema dostupnih primjeraka knjige."}), 400
 
-        # Dodaj novu posudbu
         loan_date = datetime.now().strftime('%Y-%m-%d')
         conn.execute(
             "INSERT INTO Loans (book_id, user_id, loan_date) VALUES (?, ?, ?)",
@@ -217,8 +317,7 @@ def add_loan():
         print("Greška pri dodavanju posudbe:", e)
         return jsonify({"error": "Greška na serveru."}), 500
 
-
-# Povrat knjige – PATCH ruta!
+# Povrat knjige – PATCH ruta
 @app.route('/loans/<int:loan_id>/return', methods=['PATCH'])
 def return_loan(loan_id):
     try:
@@ -235,6 +334,9 @@ def return_loan(loan_id):
         print("Greška pri vraćanju knjige:", e)
         return jsonify({"error": "Greška na serveru."}), 500
 
+#RECENZIJE
+
+
 # Dodavanje recenzije
 @app.route('/reviews', methods=['POST'])
 def add_review():
@@ -249,7 +351,6 @@ def add_review():
             return jsonify({"error": "Nedostaju podaci za recenziju."}), 400
 
         conn = get_db_connection()
-        
         conn.execute(
             "INSERT INTO Reviews (user_id, book_id, rating, comment) VALUES (?, ?, ?, ?)",
             (user_id, book_id, rating, comment)
@@ -280,137 +381,19 @@ def get_reviews_by_book(book_id):
     except Exception as e:
         print("Greška pri dohvaćanju recenzija:", e)
         return jsonify({"error": "Ne mogu dohvatiti recenzije za ovu knjigu."}), 500
-        
 
 
+#SLIKE
 
 
-
-# Ruta: DOHVATI SVE KORISNIKE (admin funkcija)
-@app.route('/users/all', methods=['GET'])
-def get_all_users():
-    try:
-        conn = get_db_connection()
-        users = conn.execute(
-            "SELECT id, username, email, first_name, last_name, role FROM Users"
-        ).fetchall()
-        conn.close()
-        return jsonify([dict(user) for user in users])
-    except Exception as e:
-        print("Greška pri dohvaćanju korisnika:", e)
-        return jsonify({"error": "Ne mogu dohvatiti korisnike."}), 500
+# Ruta za slike
+@app.route('/images/<path:filename>')
+def serve_image(filename):
+    return send_from_directory('static/images', filename)
 
 
+#MAIN / START
 
 
-
-@app.route('/users/<int:user_id>', methods=['DELETE'])
-def delete_user(user_id):
-    try:
-        conn = get_db_connection()
-        # Prvo obriši povezane recenzije i posudbe
-        conn.execute("DELETE FROM Reviews WHERE user_id = ?", (user_id,))
-        conn.execute("DELETE FROM Loans WHERE user_id = ?", (user_id,))
-        # Onda korisnika
-        conn.execute("DELETE FROM Users WHERE id = ?", (user_id,))
-        conn.commit()
-        conn.close()
-        return jsonify({"message": "Korisnik obrisan."}), 200
-    except Exception as e:
-        print("Greška pri brisanju korisnika:", e)
-        return jsonify({"error": "Ne mogu obrisati korisnika."}), 500
-
-
-@app.route('/books', methods=['POST'])
-def add_book():
-    try:
-        data = request.get_json()
-        title = data.get('title')
-        author = data.get('author')
-        year = data.get('year')
-        genre_id = data.get('genre_id')
-        available_copies = data.get('available_copies')
-        description = data.get('description', '')
-        image = data.get('image', '')
-
-        if not all([title, author, year, genre_id, available_copies]):
-            return jsonify({"error": "Sva polja osim opisa i slike su obavezna."}), 400
-
-        conn = get_db_connection()
-        conn.execute("""
-            INSERT INTO Books (title, author, year, genre_id, available_copies, description, image)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (title, author, year, genre_id, available_copies, description, image))
-        conn.commit()
-        conn.close()
-
-        return jsonify({"message": "Knjiga je uspješno dodana."}), 201
-
-    except Exception as e:
-        print("Greška pri dodavanju knjige:", e)
-        return jsonify({"error": "Greška na serveru."}), 500
-
-
-
-
-
-
-@app.route('/books/<int:book_id>', methods=['DELETE'])
-def delete_book(book_id):
-    try:
-        conn = get_db_connection()
-        # Prvo obrisi sve posudbe i recenzije vezane uz tu knjigu
-        conn.execute("DELETE FROM Loans WHERE book_id = ?", (book_id,))
-        conn.execute("DELETE FROM Reviews WHERE book_id = ?", (book_id,))
-        conn.execute("DELETE FROM Books WHERE id = ?", (book_id,))
-        conn.commit()
-        conn.close()
-        return jsonify({'message': 'Knjiga obrisana.'}), 200
-    except Exception as e:
-        print("Greška pri brisanju knjige:", e)
-        return jsonify({'error': 'Ne mogu obrisati knjigu.'}), 500
-
-
-
-
-@app.route('/books/<int:book_id>', methods=['PATCH', 'PUT'])
-def update_book(book_id):
-    try:
-        data = request.get_json()
-        conn = get_db_connection()
-        conn.execute("""
-            UPDATE Books
-            SET title = ?, author = ?, year = ?, genre_id = ?, available_copies = ?, description = ?, image = ?
-            WHERE id = ?
-        """, (
-            data.get('title', ''),
-            data.get('author', ''),
-            data.get('year', None),
-            data.get('genre_id', None),
-            data.get('available_copies', 1),
-            data.get('description', ''),
-            data.get('image', ''),
-            book_id
-        ))
-        conn.commit()
-        conn.close()
-        return jsonify({'message': 'Knjiga ažurirana.'}), 200
-    except Exception as e:
-        print("Greška pri ažuriranju knjige:", e)
-        return jsonify({'error': 'Ne mogu ažurirati knjigu.'}), 500
-
-
-
-
-
-
-
-
-
-
-# Glavni pokretanje
 if __name__ == '__main__':
     app.run(port=3001, debug=True)
-
-
-

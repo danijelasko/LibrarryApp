@@ -185,7 +185,7 @@ export async function deletePendingLoan(id) {
 }
 
 
-// U indexedDB-utils.js, nakon ostalih funkcija...
+// Aktivne posudbe
 export async function saveMyActiveLoansOffline(loans) {
   const db = await initDB();
   if (!db.objectStoreNames.contains('myActiveLoans')) {

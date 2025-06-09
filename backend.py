@@ -1,15 +1,18 @@
+#koristim standardni python modul 
 import sqlite3
 
-conn = sqlite3.connect('library.db')
-cursor = conn.cursor()
 
-cursor.execute("DROP TABLE IF EXISTS Books")
+conn = sqlite3.connect('library.db') #konekcija na lokalnu bazu
+cursor = conn.cursor()#objekt za izvršavanje SQL naredbi
+
+cursor.execute("DROP TABLE IF EXISTS Books") #osiguravanje čiste baze pri svakom pokretanju skripte
 
 
 cursor.execute("DROP TABLE IF EXISTS Loans")
 conn.commit()
 
 
+#kreiranje tablica
 cursor.executescript("""
 CREATE TABLE IF NOT EXISTS Genres (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,7 +90,7 @@ INSERT OR IGNORE INTO Genres (name) VALUES (?)
 
 conn.commit()
 
-# Ubaci 50 knjiga (naslov, autor, godina, genre_id, available_copies)
+# Unos knjiga
 books_to_insert = [
     ("Harry Potter i Kamen mudraca", "J.K. Rowling", 1997, 1, 5, "Prva knjiga iz serijala o mladom čarobnjaku Harryju Potteru.", "harrypotterikamenmudraca.jpg"),
     ("Gospodar prstenova", "J.R.R. Tolkien", 1954, 2, 3, "Epska fantastična priča o putovanju i borbi za moćni prsten.", "gospodaruprstenova.jpg"),
@@ -150,7 +153,7 @@ conn.commit()
 
 
 
-
+#Unos korisnika
 users_to_insert = [
     ('user1', 'pass123', 'user1@example.com', 'Ana', 'Horvat', '0911234567'),
     ('user2', 'secret', 'user2@example.com', 'Ivan', 'Kovač', '0987654321'),
@@ -167,8 +170,10 @@ cursor.executemany("""
 conn.commit()
 
 
+
+#Unos posudbi za svakog korisnika
 loans_to_insert = [
-    # user1 (id=1) - 7 posudbi
+    # user1 
     (1, 1, '2025-05-01', '2025-05-10'),
     (2, 1, '2025-05-05', None),
     (3, 1, '2025-05-07', '2025-05-15'),
@@ -177,28 +182,28 @@ loans_to_insert = [
     (6, 1, '2025-05-10', None),
     (7, 1, '2025-05-11', None),
 
-    # user2 (id=2) - 5 posudbi
+    # user2 
     (8, 2, '2025-04-25', '2025-05-05'),
     (9, 2, '2025-05-02', None),
     (10, 2, '2025-05-06', None),
     (11, 2, '2025-05-08', '2025-05-18'),
     (12, 2, '2025-05-10', None),
 
-    # user3 (id=3) - 5 posudbi
+    # user3
     (13, 3, '2025-04-28', '2025-05-07'),
     (14, 3, '2025-05-01', None),
     (15, 3, '2025-05-03', '2025-05-12'),
     (16, 3, '2025-05-09', None),
     (17, 3, '2025-05-11', None),
 
-    # user4 (id=4) - 5 posudbi
+    # user4 
     (18, 4, '2025-05-01', '2025-05-10'),
     (19, 4, '2025-05-05', None),
     (20, 4, '2025-05-06', None),
     (21, 4, '2025-05-08', '2025-05-17'),
     (22, 4, '2025-05-10', None),
 
-    # user5 (id=5) - 5 posudbi
+    # user5 
     (23, 5, '2025-05-02', None),
     (24, 5, '2025-05-04', '2025-05-13'),
     (25, 5, '2025-05-06', None),
@@ -213,7 +218,7 @@ conn.commit()
 
 
 
-
+#Unos recenzija
 reviews_to_insert = [
     (1, 1, 5, 'Odlična knjiga! Vrhunska radnja i stil.'),
     (2, 1, 4, 'Zanimljiva i poučna. Preporučujem.'),
@@ -229,9 +234,7 @@ cursor.executemany("""
 conn.commit()
 
 
-
-# 1. Dodaj stupac ako ne postoji
-
+#Unos admina 
 cursor.execute("""
     INSERT OR IGNORE INTO Users (username, password, email, first_name, last_name, phone, role)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -241,6 +244,6 @@ conn.commit()
 
 
 
-conn.close()
+conn.close() #zatvaranje konekcije prema bazi
 
 

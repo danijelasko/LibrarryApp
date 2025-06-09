@@ -13,16 +13,12 @@ import {
   fetchAndSaveImage,
   getImage,
   savePendingLoan,
-  getAllPendingLoans,
-  deletePendingLoan,
-  saveMyActiveLoansOffline,
-  getMyActiveLoansOffline,
   saveReviews,
   loadReviews,
   syncPendingReviews,
   getAllUserLoansCombined, 
 } from './indexedDB-utils';
-import { saveLoansToIndexedDB } from './indexedDB-utils';
+
 import { syncPendingReturns } from "./indexedDB-utils";
 
 const HomePage = ({ user }) => {
@@ -189,7 +185,7 @@ const handleMoodChange = (e) => {
   // Filter knjiga po žanru 
 useEffect(() => {
   setFilteredBooks(
-    books.filter((book) => {
+    books.filter((book) => { //pravi novi array
       // žanr
       const genreMatch =
         selectedGenre === "" ||
@@ -206,7 +202,7 @@ useEffect(() => {
       return genreMatch && titleMatch && authorMatch;
     })
   );
-  setSelectedBook(null);
+  setSelectedBook(null); //resetiramo trenutno odabranu knjigu
 }, [selectedGenre, books, searchTitle, searchAuthor]);
 
 
@@ -223,7 +219,7 @@ useEffect(() => {
   }
 
   // 2. Optimistic update za posudbe:
-  setMyActiveLoans(prev => [...prev, { book_id: bookId, user_id, id: Date.now(), return_date: null }]);
+  setMyActiveLoans(prev => [...prev, { book_id: bookId, user_id, id: Date.now(), return_date: null }]); //prije stvarne potvrde od servera
 
   // 3. Optimistic update za broj primjeraka:
   setBooks(prevBooks => prevBooks.map(book =>
@@ -251,7 +247,7 @@ useEffect(() => {
     const response = await axios.post("http://localhost:3001/loans", { user_id, book_id: bookId });
     if (response.status === 201) {
       alert("Knjiga posuđena!");
-      // NE refrešaj odmah knjige, osim ako baš želiš sinkronizirati s backendom
+      // NE refrešaj odmah knjige
     } else if (response.data && response.data.message) {
       alert(response.data.message);
       // Otkazuj optimistic update ako je server javio grešku
@@ -453,42 +449,51 @@ useEffect(() => {
           
         ) : (
           
-          <div className="book-list">
-            {filteredBooks.map((book) => {
-              const alreadyLoaned = myActiveLoans.some(loan => loan.book_id === book.id && loan.return_date == null);
-              return (
-                <div
-                  key={book.id}
-                  className={`book-item ${selectedBook && selectedBook.id === book.id ? "selected" : ""}`}
-                  onClick={() => setSelectedBook(book)}
-                >
-                  <img
-                    src={imageUrls[book.id] || "/images/default-book.png"}
-                    alt={book.title}
-                    width={165}
-                    height={220}
-                    loading="lazy"
-                  />
-                  <h3>{book.title}</h3>
-                  <p><i>{book.author}</i></p>
-                  <p><b>Žanr:</b> {book.genre}</p>
-                  <p><b>Dostupno primjeraka:</b> {book.available_now} / {book.available_copies}</p>
-                  {!alreadyLoaned ? (
-                    <button onClick={e => {
-                      e.stopPropagation();
-                      handleLoan(book.id);
-                    }}>
-                      Dodaj u posudbe
-                    </button>
-                  ) : (
-                    <span style={{ color: 'gray', fontWeight: 'bold' }}>
-                      Već posuđeno
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+        <div className="book-list">
+  {filteredBooks.map((book) => {
+    const alreadyLoaned = myActiveLoans.some(
+      loan => loan.book_id === book.id && loan.return_date == null
+    );
+    const nemaNaZalihi = book.available_now === 0; // ili ako imaš drugačiji property, zamijeni
+
+    return (
+      <div
+        key={book.id}
+        className={`book-item ${selectedBook && selectedBook.id === book.id ? "selected" : ""}`}
+        onClick={() => setSelectedBook(book)}
+      >
+        <img
+          src={imageUrls[book.id] || "/images/default-book.png"}
+          alt={book.title}
+          width={165}
+          height={220}
+          loading="lazy"
+        />
+        <h3>{book.title}</h3>
+        <p><i>{book.author}</i></p>
+        <p><b>Žanr:</b> {book.genre}</p>
+        <p><b>Dostupno primjeraka:</b> {book.available_now} / {book.available_copies}</p>
+
+        {nemaNaZalihi ? (
+          <span style={{ color: 'darkred', fontWeight: 'bold' }}>
+            Nema na zalihi
+          </span>
+        ) : !alreadyLoaned ? (
+          <button onClick={e => {
+            e.stopPropagation();
+            handleLoan(book.id);
+          }}>
+            Dodaj u posudbe
+          </button>
+        ) : (
+          <span style={{ color: 'gray', fontWeight: 'bold' }}>
+            Već posuđeno
+          </span>
+        )}
+      </div>
+    );
+  })}
+</div>
         )}
 
         {selectedBook && !loading && (

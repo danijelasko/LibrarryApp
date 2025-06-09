@@ -52,7 +52,7 @@ useEffect(() => {
   const handleStatusChange = () => setIsOnline(navigator.onLine);
   window.addEventListener('online', handleStatusChange);
   window.addEventListener('offline', handleStatusChange);
-  return () => {
+  return () => { //kada napustimo komponentu
     window.removeEventListener('online', handleStatusChange);
     window.removeEventListener('offline', handleStatusChange);
   };
@@ -64,7 +64,7 @@ useEffect(() => {
   // --- Sync recenzija ---
   const handleSyncReviews = useCallback(async () => {
     if (navigator.onLine) {
-      await syncPendingReviews();
+      await syncPendingReviews();//ako imamo interneta sinkronizacija svih offline spremljenih
     }
   }, []);
 
@@ -144,12 +144,12 @@ useEffect(() => {
   }
 };
 
-  // --- Toggle loans prikaz ---
+  // Toggle loans prikaz 
   const handleToggleLoans = () => {
     if (loansVisible) {
       loans.forEach((loan) => {
         if (loan.localImageUrl) {
-          URL.revokeObjectURL(loan.localImageUrl);
+          URL.revokeObjectURL(loan.localImageUrl); // browser API funkcija koja oslobađa memoriju rezerviranu za taj privremeni URL (Blob URL)
         }
       });
       setLoans([]);
@@ -284,6 +284,10 @@ useEffect(() => {
   useEffect(() => {
     handleSyncReviews();
   }, [handleSyncReviews]);
+
+
+
+
 
   // --- Prikaz ---
   return (
